@@ -134,6 +134,50 @@ footer{text-align:center;color:var(--muted);font-weight:700;font-size:12px;margi
 .diag-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px dashed #ede5ef;font-size:13px}
 .diag-row b{overflow-wrap:anywhere;text-align:right;max-width:63%}
 #viewSettings{padding:0 16px 50px}#btnDisconnect{margin-top:8px}
+
+/* ===== PANEL KONTROL TERINTEGRASI ===== */
+.control-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+.climate-panel{min-width:0;padding:24px;display:flex;flex-direction:column;overflow:hidden;border-radius:28px;box-shadow:0 12px 32px rgba(255,138,61,.12)}
+.temp-panel{--panel-accent:#f47b2d;--panel-soft:#fff3e8}
+.humidity-panel{--panel-accent:#338ac7;--panel-soft:#edf8ff}
+.panel-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.panel-heading-title{display:flex;align-items:center;gap:12px;min-width:0}
+.panel-heading h2{font:800 25px 'Baloo 2',cursive;line-height:1.1;margin:0}
+.panel-heading p{font-size:12px;color:var(--muted);font-weight:700;margin:2px 0 0}
+.panel-symbol{display:grid;place-items:center;width:48px;height:48px;flex:none;border-radius:16px;background:var(--panel-soft);font-size:24px}
+.panel-heading .tag{color:var(--panel-accent);background:var(--panel-soft);margin:0;flex:none}
+.reading-area{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:15px 0 20px;min-height:260px}
+.reading-area .gauge{width:190px;height:190px;margin:0 auto 5px}
+.reading-target{font-weight:800;font-size:14px;color:var(--muted)}
+.reading-target b{color:var(--panel-accent);font-size:17px}
+.control-area{padding:17px 16px 19px;background:var(--panel-soft);border-radius:20px}
+.control-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font:800 17px 'Baloo 2',cursive}
+.control-range{font:700 11px 'Nunito',sans-serif;color:var(--muted)}
+.control-area .seg{margin:9px 0 13px;background:#ffffffb5}
+.control-area .seg button.active{background:var(--panel-accent);box-shadow:0 4px 10px #00000012}
+.control-area .row{margin:8px 0 10px}
+.control-area .val{color:var(--panel-accent)}
+.control-area .slider-row{margin:0 0 8px}
+.control-area .step{color:var(--panel-accent);border-color:#fff;background:#fff;flex:none}
+.control-area input[type=range]{background:linear-gradient(90deg,#ffe0a8,var(--panel-accent))}
+.manual-line{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid #ffffff;padding-top:14px;margin-top:15px;font-weight:800;font-size:14px}
+.actuator-area{margin-top:18px;flex:1;display:flex;flex-direction:column}
+.actuator-heading{font-weight:900;font-size:14px;margin-bottom:10px}
+.actuator-stack{display:grid;gap:10px;align-content:start}
+.actuator-tile{display:flex;align-items:center;gap:12px;border:1px solid #f1e7df;border-radius:17px;padding:12px 14px;background:#fffdfb;min-height:84px}
+.actuator-tile.on{background:var(--panel-soft);border-color:#f3d7c5}
+.tile-icon{width:48px;height:48px;flex:none;display:grid;place-items:center;font-size:25px;background:#fff2e6;border-radius:14px}
+.humidity-panel .tile-icon{background:#e7f5ff}
+.tile-info{display:flex;flex-direction:column;gap:1px;flex:1}
+.tile-label{font-weight:800;font-size:12px;color:var(--muted)}
+.tile-info .state{font:800 24px 'Baloo 2',cursive;line-height:1.1}
+.tile-dot{height:11px;width:11px;border-radius:50%;background:#c5c8cd}
+.actuator-tile.on .tile-dot{background:#27bd8a;box-shadow:0 0 0 4px #27bd8a23}
+.motor-track{width:90px;flex:none}
+.motor-track .bar{margin:0;height:9px}
+.actuator-footnote{border:1px dashed #d6e7f2;border-radius:12px;padding:12px;color:var(--muted);font-size:12px;font-weight:700;min-height:55px;display:flex;align-items:center;justify-content:center;text-align:center}
+@media(max-width:780px){.control-panels{grid-template-columns:1fr;gap:16px}.climate-panel{padding:19px}.reading-area{min-height:236px;padding:13px 0}.reading-area .gauge{width:174px;height:174px}.actuator-area{margin-top:16px}}
+@media(max-width:390px){.climate-panel{padding:14px}.control-area{padding:13px}.panel-heading h2{font-size:22px}.panel-symbol{width:43px;height:43px}.motor-track{width:65px}}
 </style>
 </head>
 <body>
@@ -154,7 +198,7 @@ footer{text-align:center;color:var(--muted);font-weight:700;font-size:12px;margi
   </svg>
   <div>
     <h1>Smart Incubator</h1>
-    <p>Dashboard penetas telur yang imut 🥚✨</p>
+    <p>Monitoring & kontrol inkubator</p>
   </div>
   <div class="pills">
     <div class="pill" id="pMqtt"><span class="dot"></span><span id="tMqtt">MQTT: --</span></div>
@@ -166,87 +210,91 @@ footer{text-align:center;color:var(--muted);font-weight:700;font-size:12px;margi
 <div class="alert" id="alertSafety">🔥 SAFETY TRIP! Suhu ≥ 39.5°C — heater dimatikan otomatis oleh alat.</div>
 <div class="alert" id="alertSensor">⚠️ Sensor DHT22 error — semua output dimatikan demi keamanan.</div>
 
-<!-- MONITORING -->
-<div class="grid g-top">
-  <div class="card">
-    <h3>🌡️ Suhu <span class="tag" id="tagTemp">AUTO</span></h3>
-    <div class="gauge">
-      <svg viewBox="0 0 200 200">
-        <circle class="bg" cx="100" cy="100" r="84" fill="none" stroke-width="20"/>
-        <circle class="fg" id="gTemp" cx="100" cy="100" r="84" fill="none" stroke="#ff8a3d" stroke-width="20" stroke-dasharray="527.8" stroke-dashoffset="527.8"/>
-      </svg>
-      <div class="txt"><div class="big" id="vTemp">--</div><div class="sub">°C aktual</div></div>
+<!-- PANEL MONITORING + KONTROL TERINTEGRASI -->
+<div class="control-panels">
+  <!-- SUHU: PEMBACAAN, KONTROL, DAN AKTUATOR DALAM SATU PANEL -->
+  <section class="card climate-panel temp-panel" aria-label="Monitoring dan kontrol suhu">
+    <div class="panel-heading">
+      <div class="panel-heading-title"><span class="panel-symbol">🌡️</span><div><h2>Suhu</h2><p>Kontrol pemanasan</p></div></div>
+      <span class="tag" id="tagTemp">AUTO</span>
     </div>
-    <div class="sp-row">Target: <b id="spTemp">--</b> °C</div>
-  </div>
-
-  <div class="card">
-    <h3>💧 Kelembapan <span class="tag" id="tagHum">AUTO</span></h3>
-    <div class="gauge">
-      <svg viewBox="0 0 200 200">
-        <circle class="bg" cx="100" cy="100" r="84" fill="none" stroke-width="20"/>
-        <circle class="fg" id="gHum" cx="100" cy="100" r="84" fill="none" stroke="#8ec9ff" stroke-width="20" stroke-dasharray="527.8" stroke-dashoffset="527.8"/>
-      </svg>
-      <div class="txt"><div class="big" id="vHum">--</div><div class="sub">% RH aktual</div></div>
-    </div>
-    <div class="sp-row">Batas: <b id="spHum">--</b> %</div>
-  </div>
-
-  <div class="grid" style="gap:16px">
-    <div class="card act" id="aHeater">
-      <div class="act-ico"><span id="iHeater">🔥</span></div>
-      <div><div class="small">Heater (relay AC)</div><div class="state" id="sHeater">OFF</div></div>
-    </div>
-    <div class="card act" id="aFan">
-      <div class="act-ico"><span id="iFan">💨</span></div>
-      <div><div class="small">Exhaust (relay DC)</div><div class="state" id="sFan">OFF</div></div>
-    </div>
-
-  </div>
-</div>
-
-<!-- KONTROL -->
-<div class="grid g-ctrl">
-  <div class="card">
-    <h3>🔥 Kontrol Suhu</h3>
-    <div class="seg" id="segTemp"><button data-v="1">🤖 Auto</button><button data-v="0">🖐️ Manual</button></div>
-    <div class="row"><span>Setpoint</span><span class="val"><span id="lblSpTemp">37.5</span> °C</span></div>
-    <div class="slider-row">
-      <button class="step" data-t="sp" data-d="-0.1">−</button>
-      <input type="range" id="slSpTemp" min="25" max="50" step="0.1" value="37.5">
-      <button class="step" data-t="sp" data-d="0.1">+</button>
-    </div>
-    <div class="row"><span>Heater manual</span>
-      <label class="switch"><input type="checkbox" id="swHeater"><span></span></label></div>
-    <div class="act-summary" id="aMotor">
-      <div class="act">
-        <div class="act-ico"><span id="iMotor">🌀</span></div>
-        <div style="flex:1"><div class="small">Kipas sirkulasi</div><div class="state" id="sMotor">0 %</div></div>
+    <div class="reading-area">
+      <div class="gauge">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="bg" cx="100" cy="100" r="84" fill="none" stroke-width="20"/>
+          <circle class="fg" id="gTemp" cx="100" cy="100" r="84" fill="none" stroke="#ff8a3d" stroke-width="20" stroke-dasharray="527.8" stroke-dashoffset="527.8"/>
+        </svg>
+        <div class="txt"><div class="big" id="vTemp">--</div><div class="sub">°C aktual</div></div>
       </div>
-      <div class="bar"><i id="bMotor"></i></div>
+      <div class="reading-target">Target <b id="spTemp">--</b> °C</div>
     </div>
-  </div>
-
-  <div class="card">
-    <h3>💧 Kontrol Kelembapan</h3>
-    <div class="seg" id="segHum"><button data-v="1">🤖 Auto</button><button data-v="0">🖐️ Manual</button></div>
-    <div class="row"><span>Batas humidity</span><span class="val"><span id="lblSpHum">65.0</span> %</span></div>
-    <div class="slider-row">
-      <button class="step" data-t="hum" data-d="-0.5">−</button>
-      <input type="range" id="slSpHum" min="40" max="90" step="0.5" value="65">
-      <button class="step" data-t="hum" data-d="0.5">+</button>
-    </div>
-    <div class="row"><span>Exhaust manual</span>
-      <label class="switch"><input type="checkbox" id="swFan"><span></span></label></div>
-    <div class="act-summary" id="aExhaustSummary">
-      <div class="act">
-        <div class="act-ico">💨</div>
-        <div><div class="small">Exhaust</div><div class="state" id="sExhaustControl">OFF</div></div>
+    <div class="control-area">
+      <div class="control-title"><span>Atur Suhu</span><span class="control-range">25–50 °C</span></div>
+      <div class="seg" id="segTemp"><button type="button" data-v="1">🤖 Auto</button><button type="button" data-v="0">🖐️ Manual</button></div>
+      <div class="row"><span>Setpoint</span><span class="val"><span id="lblSpTemp">37.5</span> °C</span></div>
+      <div class="slider-row">
+        <button type="button" class="step" data-t="sp" data-d="-0.1" aria-label="Kurangi setpoint suhu">−</button>
+        <input type="range" id="slSpTemp" min="25" max="50" step="0.1" value="37.5" aria-label="Setpoint suhu">
+        <button type="button" class="step" data-t="sp" data-d="0.1" aria-label="Tambah setpoint suhu">+</button>
       </div>
-      <div class="bar"><i id="bExhaustControl"></i></div>
+      <div class="manual-line"><span>Heater manual</span><label class="switch"><input type="checkbox" id="swHeater" aria-label="Heater manual"><span></span></label></div>
     </div>
-  </div>
+    <div class="actuator-area">
+      <div class="actuator-heading">Status aktuator</div>
+      <div class="actuator-stack">
+        <div class="actuator-tile" id="aHeater">
+          <div class="tile-icon"><span id="iHeater">🔥</span></div>
+          <div class="tile-info"><span class="tile-label">Heater AC</span><strong class="state" id="sHeater">OFF</strong></div>
+          <span class="tile-dot"></span>
+        </div>
+        <div class="actuator-tile" id="aMotor">
+          <div class="tile-icon"><span id="iMotor">🌀</span></div>
+          <div class="tile-info"><span class="tile-label">Kipas sirkulasi</span><strong class="state" id="sMotor">0 %</strong></div>
+          <div class="motor-track"><div class="bar"><i id="bMotor"></i></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- KELEMBAPAN: PEMBACAAN, KONTROL, DAN EXHAUST DALAM SATU PANEL -->
+  <section class="card climate-panel humidity-panel" aria-label="Monitoring dan kontrol kelembapan">
+    <div class="panel-heading">
+      <div class="panel-heading-title"><span class="panel-symbol">💧</span><div><h2>Kelembapan</h2><p>Kontrol exhaust</p></div></div>
+      <span class="tag" id="tagHum">AUTO</span>
+    </div>
+    <div class="reading-area">
+      <div class="gauge">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="bg" cx="100" cy="100" r="84" fill="none" stroke-width="20"/>
+          <circle class="fg" id="gHum" cx="100" cy="100" r="84" fill="none" stroke="#8ec9ff" stroke-width="20" stroke-dasharray="527.8" stroke-dashoffset="527.8"/>
+        </svg>
+        <div class="txt"><div class="big" id="vHum">--</div><div class="sub">% RH aktual</div></div>
+      </div>
+      <div class="reading-target">Target <b id="spHum">--</b> % RH</div>
+    </div>
+    <div class="control-area">
+      <div class="control-title"><span>Atur Kelembapan</span><span class="control-range">40–90 %</span></div>
+      <div class="seg" id="segHum"><button type="button" data-v="1">🤖 Auto</button><button type="button" data-v="0">🖐️ Manual</button></div>
+      <div class="row"><span>Setpoint</span><span class="val"><span id="lblSpHum">65.0</span> %</span></div>
+      <div class="slider-row">
+        <button type="button" class="step" data-t="hum" data-d="-0.5" aria-label="Kurangi setpoint kelembapan">−</button>
+        <input type="range" id="slSpHum" min="40" max="90" step="0.5" value="65" aria-label="Setpoint kelembapan">
+        <button type="button" class="step" data-t="hum" data-d="0.5" aria-label="Tambah setpoint kelembapan">+</button>
+      </div>
+      <div class="manual-line"><span>Exhaust manual</span><label class="switch"><input type="checkbox" id="swFan" aria-label="Exhaust manual"><span></span></label></div>
+    </div>
+    <div class="actuator-area">
+      <div class="actuator-heading">Status aktuator</div>
+      <div class="actuator-stack">
+        <div class="actuator-tile" id="aFan">
+          <div class="tile-icon"><span id="iFan">💨</span></div>
+          <div class="tile-info"><span class="tile-label">Exhaust DC</span><strong class="state" id="sFan">OFF</strong></div>
+          <span class="tile-dot"></span>
+        </div>
+        <div class="actuator-footnote">Status berdasarkan data ESP32</div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <!-- CHART -->
@@ -273,7 +321,7 @@ footer{text-align:center;color:var(--muted);font-weight:700;font-size:12px;margi
 <section id="viewSettings" style="display:none;max-width:950px;margin:22px auto 0">
   <div class="settings-hero"><button type="button" id="backDash" class="btn-mini">← Dashboard</button>
     <h2>⚙️ Pengaturan Smart Incubator</h2>
-    <p>Pengaturan koneksi sensor seperti referensi Pressure Lab Kit. Dashboard terbuka tanpa login akun web; koneksi broker tetap perlu autentikasi MQTT.</p></div>
+    <p>Koneksi dan status perangkat.</p></div>
   <div class="settings-grid">
    <div class="settings-card">
     <h3>🔌 Koneksi Sensor (MQTT)</h3>
@@ -469,8 +517,8 @@ function setGauge(id, frac){
 }
 function render(){
   // koneksi alat melalui MQTT
-  $("pDev").className = "pill "+(S.deviceOnline?"ok":"bad");
-  $("tDev").textContent = "Alat: "+(S.deviceOnline?"online":"offline");
+  $("pDev").className = "pill "+(S.deviceOnline && client?.connected?"ok":"bad");
+  $("tDev").textContent = "Alat: "+(S.deviceOnline && client?.connected?"online":"offline");
 
   // alert
   $("alertSafety").classList.toggle("show", S.safetyTrip);
@@ -494,8 +542,6 @@ function render(){
   $("iHeater").className = S.heaterOn?"glow":"";
   $("aFan").classList.toggle("on",S.fanOn);
   $("sFan").textContent = S.fanOn?"ON":"OFF";
-  $("sExhaustControl").textContent = S.fanOn?"ON":"OFF";
-  $("bExhaustControl").style.width = S.fanOn?"100%":"0%";
   $("iFan").className = S.fanOn?"spin":"";
   $("aMotor").classList.toggle("on",S.motorNow>0);
   $("sMotor").textContent = S.motorNow+" %";
