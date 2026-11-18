@@ -6,7 +6,7 @@
 <title>Smart Incubator 🐣</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
-<!-- Dashboard langsung di ESP32; tidak perlu MQTT password di browser -->
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <style>
 :root{
   --orange:#ff8a3d; --orange-d:#f26b0f; --orange-l:#ffe6d1; --cream:#fff8f1;
@@ -116,10 +116,26 @@ canvas{width:100%;height:230px;display:block}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:99px;font-weight:800;font-size:14px;transition:.35s;z-index:60}
 .toast.show{transform:translateX(-50%) translateY(0)}
 footer{text-align:center;color:var(--muted);font-weight:700;font-size:12px;margin-top:26px}
+
+.settings-hero,.settings-card{background:#fff;border:1px solid #f0e5f3;border-radius:24px;box-shadow:0 8px 24px #b5a1bd22;padding:22px}
+.settings-hero{background:linear-gradient(115deg,#ffeaf2,#f2eeff,#eaf9fa);margin-bottom:20px}
+.settings-hero h2{margin:14px 0 5px;font:800 25px 'Baloo 2',sans-serif;color:#543b58}
+.settings-hero p,.settings-card .hint{color:#8c8199;font-size:13px;line-height:1.5}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.settings-card h3{margin-bottom:8px;font-size:20px}
+.settings-card label:not(.remember-line){display:block;font-weight:800;font-size:13px;margin:13px 0 5px}
+.settings-card input[type=text],.settings-card input[type=password],.settings-card input[type=number]{display:block;width:100%;padding:12px;border:2px solid #eee2f1;border-radius:12px;font:700 14px 'Nunito',sans-serif;background:#fcfaff}
+.remember-line{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;margin:16px 0 4px}
+.security-note{font-size:12px;color:#93666b;background:#fff3ef;border-radius:10px;padding:10px}
+.connection-error{color:#d3494c;font-size:13px;min-height:20px;overflow-wrap:anywhere;margin-top:12px}
+.diag-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px dashed #ede5ef;font-size:13px}
+.diag-row b{overflow-wrap:anywhere;text-align:right;max-width:63%}
+#viewSettings{padding:0 16px 50px}#btnDisconnect{margin-top:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
+<div id="viewDash">
 
 <header>
   <svg class="logo" viewBox="0 0 100 100">
@@ -140,7 +156,7 @@ footer{text-align:center;color:var(--muted);font-weight:700;font-size:12px;margi
   <div class="pills">
     <div class="pill" id="pMqtt"><span class="dot"></span><span id="tMqtt">MQTT: --</span></div>
     <div class="pill" id="pDev"><span class="dot"></span><span id="tDev">Alat: menunggu</span></div>
-    <div class="pill">🔓 Tanpa login</div>
+    <button class="btn-mini" id="btnMqttSettings" type="button">⚙️ Pengaturan</button>
   </div>
 </header>
 
@@ -257,18 +273,62 @@ footer{text-align:center;color:var(--muted);font-weight:700;font-size:12px;margi
   <div class="log" id="log"></div>
 </div>
 
-<footer>Dashboard lokal ESP32 • Tanpa login • Akses melalui WiFi yang sama<br>
-    MQTT HiveMQ diproses oleh ESP32, bukan oleh browser. Jangan teruskan port 80 ke internet.</footer>
+<footer>Dashboard Vercel • MQTT WebSocket TLS • Tanpa login dashboard<br>
+    Kredensial broker dimasukkan saat koneksi; hindari komputer publik.</footer>
 </div>
 
+</div>
+<section id="viewSettings" style="display:none;max-width:950px;margin:22px auto 0">
+  <div class="settings-hero"><button type="button" id="backDash" class="btn-mini">← Dashboard</button>
+    <h2>⚙️ Pengaturan Smart Incubator</h2>
+    <p>Pengaturan koneksi sensor seperti referensi Pressure Lab Kit. Dashboard terbuka tanpa login akun web; koneksi broker tetap perlu autentikasi MQTT.</p></div>
+  <div class="settings-grid">
+   <div class="settings-card">
+    <h3>🔌 Koneksi Sensor (MQTT)</h3>
+    <p class="hint">Koneksi berjalan otomatis jika pengaturan sebelumnya disimpan. Untuk sambungan pertama, lengkapi data MQTT di bawah.</p>
+    <form id="mqttForm">
+      <label for="cfgHost">Broker HiveMQ Cloud</label><input id="cfgHost" type="text" autocomplete="off" required>
+      <label for="cfgPort">Port WebSocket TLS</label><input id="cfgPort" type="number" min="1" max="65535" required>
+      <label for="cfgPath">Path</label><input id="cfgPath" type="text" required>
+      <label for="cfgUser">Username sensor</label><input id="cfgUser" type="text" autocomplete="username" required>
+      <label for="cfgPass">Password sensor (HiveMQ)</label><input id="cfgPass" type="password" autocomplete="off" required>
+      <label class="remember-line"><input id="cfgRemember" type="checkbox"> Ingat koneksi di browser ini (termasuk password)</label>
+      <p class="security-note">Pada perangkat bersama atau publik jangan aktifkan Ingat koneksi. Pengaturan yang diingat tersimpan di browser dan bisa dibaca oleh skrip yang berjalan pada situs ini.</p>
+      <button class="btn" id="btnConnect" type="submit">Simpan & Sambungkan Ulang</button>
+      <button class="btn" type="button" id="btnDisconnect" style="background:#64748b">Putuskan MQTT</button>
+      <p id="mqttError" role="status" class="connection-error"></p>
+    </form>
+   </div>
+   <div class="settings-card">
+     <h3>📡 Status & Diagnostik</h3>
+     <div class="diag-row"><span>Web MQTT</span><b id="diagMqtt">Belum terhubung</b></div>
+     <div class="diag-row"><span>ESP32</span><b id="diagDevice">Menunggu data</b></div>
+     <div class="diag-row"><span>Terakhir menerima data</span><b id="diagLast">—</b></div>
+     <div class="diag-row"><span>Alamat WSS</span><b id="diagUrl">—</b></div>
+     <p class="hint">ESP32: MQTT TLS 8883. Web Vercel: MQTT WebSocket Secure 8884, path /mqtt.</p>
+     <p class="hint">Topik: smartincubator/monitoring, smartincubator/controls/state, smartincubator/controls_status, smartincubator/controls/set, smartincubator/online.</p>
+     <button id="btnGoDash" class="btn" type="button">Buka Dashboard</button>
+   </div>
+  </div>
+</section>
 <div class="toast" id="toast"></div>
 
 <script>
-/* Dashboard tanpa login dihost langsung oleh ESP32.
-   Password HiveMQ hanya disimpan di firmware ESP32, bukan di HTML.
-   Akses hanya dari perangkat di WiFi/LAN yang sama. */
-const API = { state: "/api/state", command: "/api/control" };
-
+/* Dashboard ini berjalan di Vercel. Data via HiveMQ WSS. */
+const CFG_DEFAULT = {
+  host: "f84ce95af63a4865acc74f0d000a1e4a.s1.eu.hivemq.cloud",
+  port: 8884, path: "/mqtt", user: "sabrok"
+};
+const T = {
+  cmd: "smartincubator/controls/set",
+  state: "smartincubator/controls/state",
+  mon: "smartincubator/monitoring",
+  status: "smartincubator/controls_status",
+  online: "smartincubator/online"
+};
+let client = null;
+let deviceLastSeen = 0;
+let mqttGeneration = 0;
 /* ========= STATE ========= */
 const S = {
   suhu:null, hum:null, sensorValid:false, safetyTrip:false,
@@ -280,7 +340,6 @@ const S = {
 const hist = [];           // {t, temp, hum, sp, sph}
 const HIST_MAX = 120;
 let apiReady = false;
-let currentPoll = null;
 const editing = {};        // slider yang sedang digeser
 const $ = id => document.getElementById(id);
 
@@ -289,35 +348,81 @@ function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show")
 function log(msg){const l=$("log");const d=new Date().toLocaleTimeString("id-ID");l.innerHTML=`[${d}] ${msg}<br>`+l.innerHTML;if(l.innerHTML.length>8000)l.innerHTML=l.innerHTML.slice(0,6000)}
 const num = (v,d=1)=> (v===null||v===undefined||isNaN(v)) ? "--" : Number(v).toFixed(d);
 
-/* ========= API LOKAL ESP32, TANPA LOGIN ========= */
-async function pollDevice() {
-  if (currentPoll) return;
-  const ctrl = new AbortController();
-  const timeout = setTimeout(() => ctrl.abort(), 2500);
-  currentPoll = true;
-  try {
-    const r = await fetch(API.state, {cache:"no-store", signal:ctrl.signal});
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    apiReady = true;
-    S.deviceOnline = true;
-    if (j.monitoring) onMon(j.monitoring);
-    if (j.state) onState(j.state);
-    if (j.status) onStatus(j.status);
-    setMqtt(!!j.network?.mqtt,
-      "MQTT: " + (j.network?.mqtt ? "terhubung" : "offline"));
-    if(j.network?.ip) document.title = "Smart Incubator • " + j.network.ip;
-    render();
-  } catch(e) {
-    const wasReady = apiReady;
-    apiReady = false;
-    S.deviceOnline = false;
-    setMqtt(false,"MQTT: --");
-    if(wasReady) log("Koneksi ke ESP32 terputus");
-    render();
-  } finally {clearTimeout(timeout);currentPoll=null;}
+/* ========= MQTT WSS UNTUK VERCEL ========= */
+function showView(which){
+  $("viewDash").style.display = which === "dash" ? "" : "none";
+  $("viewSettings").style.display = which === "settings" ? "" : "none";
+  window.scrollTo(0,0);
 }
-
+function openMqttSettings(){
+  showView("settings");
+  $("mqttError").textContent = "";
+}
+function connectMqtt(cfg){
+  if(typeof mqtt === "undefined") {
+    $("mqttError").textContent = "Library mqtt.js gagal dimuat. Periksa internet/ad-blocker.";
+    return;
+  }
+  const generation = ++mqttGeneration;
+  if(client){ const old = client; client = null; try { old.end(true); } catch(e) {} }
+  apiReady = false;
+  S.deviceOnline = false;
+  deviceLastSeen = 0;
+  setMqtt(false,"MQTT: menghubungkan...");
+  const host = cfg.host.trim().replace(/^wss?:\/\//i,"").replace(/\/$/,"");
+  const path = cfg.path.startsWith("/") ? cfg.path : "/"+cfg.path;
+  const url = `wss://${host}:${cfg.port}${path}`;
+  try {
+    const conn = mqtt.connect(url, {
+      username:cfg.user,
+      password:cfg.pass,
+      clientId:"IncubatorWeb-"+Math.random().toString(16).slice(2),
+      reconnectPeriod:4000,
+      connectTimeout:10000,
+      keepalive:30,
+      clean:true,
+      protocolVersion:4
+    });
+    client = conn;
+    conn.on("connect",()=>{
+      if(generation !== mqttGeneration) return;
+      apiReady = true;
+      setMqtt(true,"MQTT: terhubung");
+      $("mqttError").textContent = "";
+      $("btnConnect").textContent = "✅ Terhubung — Sambungkan Ulang";
+      // Jangan hapus password dari kolom, agar reconnect manual bisa dilakukan.
+      showView("dash");
+      conn.subscribe([T.mon,T.state,T.status,T.online],err=>{
+        if(err) log("Gagal subscribe: "+err.message);
+      });
+      log("MQTT terhubung: "+host);
+      render();
+    });
+    conn.on("message",(topic,buf)=>{
+      if(generation !== mqttGeneration) return;
+      const data = buf.toString();
+      if(topic === T.online){
+        S.deviceOnline = data === "online";
+        if(S.deviceOnline) deviceLastSeen=Date.now();
+      } else {
+        let j;
+        try{j=JSON.parse(data)}catch(e){log("JSON invalid: "+topic);return}
+        if(topic===T.mon){onMon(j);deviceLastSeen=Date.now();S.deviceOnline=true}
+        if(topic===T.state) onState(j);
+        if(topic===T.status){onStatus(j);deviceLastSeen=Date.now();S.deviceOnline=true}
+      }
+      render();
+    });
+    conn.on("reconnect",()=>{if(generation===mqttGeneration){apiReady=false;setMqtt(false,"MQTT: reconnect...");render()}});
+    conn.on("close",()=>{if(generation===mqttGeneration){apiReady=false;setMqtt(false,"MQTT: terputus");render()}});
+    conn.on("error",e=>{
+      if(generation!==mqttGeneration)return;
+      $("mqttError").textContent = "Gagal koneksi: "+e.message;
+      $("btnConnect").textContent = "Coba Sambungkan Ulang";
+      log("MQTT error: "+e.message);
+    });
+  } catch(e){$("mqttError").textContent = "Alamat WSS salah: "+e.message;}
+}
 function onMon(j){
   S.sensorValid = !!j.sensor_valid;
   S.safetyTrip  = !!j.safety_trip;
@@ -351,18 +456,17 @@ function onStatus(j){
 }
 
 function send(obj){
-  if (!apiReady) {toast("ESP32 belum terhubung ke dashboard 😢"); return false;}
-  fetch(API.command, {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(obj)
-  }).then(async r=>{
-    if(!r.ok) throw new Error("Gagal kirim: HTTP "+r.status);
-    await pollDevice();
-  }).catch(e=>{ log(e.message);toast("Perintah gagal terkirim");pollDevice(); });
-  log("Kirim lokal: "+JSON.stringify(obj));
+  if(!client || !client.connected){
+    toast("MQTT belum tersambung. Buka Pengaturan MQTT.");
+    openMqttSettings();
+    return false;
+  }
+  client.publish(T.cmd, JSON.stringify(obj), {qos:0,retain:false}, err=>{
+    if(err){ log("Gagal kirim MQTT: "+err.message);toast("Gagal mengirim kontrol") }
+  });
+  log("Kirim MQTT: "+JSON.stringify(obj));
   return true;
 }
-
 /* ========= RENDER ========= */
 function setMqtt(ok,txt){
   $("pMqtt").className = "pill "+(ok?"ok":"bad"); $("tMqtt").textContent = txt;
@@ -372,7 +476,7 @@ function setGauge(id, frac){
   $(id).style.strokeDashoffset = C*(1-frac);
 }
 function render(){
-  // koneksi alat lokal
+  // koneksi alat melalui MQTT
   $("pDev").className = "pill "+(S.deviceOnline?"ok":"bad");
   $("tDev").textContent = "Alat: "+(S.deviceOnline?"online":"offline");
 
@@ -499,14 +603,75 @@ function drawChart(){
 }
 window.addEventListener("resize",drawChart);
 
-/* ========= START OTOMATIS, TANPA PASSWORD ========= */
+/* ========= PENGATURAN MQTT MODEL PRESSURE LAB KIT ========= */
+const SETTINGS_KEY = "smartincubator_mqtt_cfg_v3";
+const SESSION_KEY = "smartincubator_mqtt_session_v3";
+function readSavedSettings(){
+  try {
+    const remembered = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
+    if(remembered && remembered.pass) return {cfg:remembered,remember:true};
+    const session = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
+    if(session && session.pass) return {cfg:session,remember:false};
+  } catch(e) {}
+  return null;
+}
+function fillConfig(cfg){
+  $("cfgHost").value=cfg.host||CFG_DEFAULT.host;
+  $("cfgPort").value=cfg.port||CFG_DEFAULT.port;
+  $("cfgPath").value=cfg.path||CFG_DEFAULT.path;
+  $("cfgUser").value=cfg.user||CFG_DEFAULT.user;
+  $("cfgPass").value=cfg.pass||"";
+}
+function updateDiagnostics(){
+  $("diagMqtt").textContent=client&&client.connected?"Terhubung":"Tidak terhubung";
+  $("diagDevice").textContent=S.deviceOnline?"Online":"Offline / menunggu";
+  $("diagLast").textContent=S.lastData?S.lastData.toLocaleTimeString("id-ID"):"—";
+  const h=$("cfgHost").value.trim(),p=$("cfgPort").value, path=$("cfgPath").value;
+  $("diagUrl").textContent=h ? `wss://${h}:${p}${path}` : "—";
+}
+$("btnMqttSettings").onclick=openMqttSettings;
+$("backDash").onclick=()=>showView("dash");
+$("btnGoDash").onclick=()=>showView("dash");
+$("btnDisconnect").onclick=()=>{
+  ++mqttGeneration;
+  if(client){try{client.end(true)}catch(e){}}
+  client=null; apiReady=false; S.deviceOnline=false;
+  setMqtt(false,"MQTT: diputuskan");
+  $("mqttError").textContent="Koneksi diputuskan manual. Klik Sambungkan Ulang untuk menyambung kembali.";
+  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SETTINGS_KEY);
+  $("cfgRemember").checked=false;
+  render(); updateDiagnostics();
+};
+$("mqttForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const cfg={
+    host:$("cfgHost").value.trim(),port:Number($("cfgPort").value),
+    path:$("cfgPath").value.trim(),user:$("cfgUser").value.trim(),pass:$("cfgPass").value
+  };
+  if(!cfg.host||!cfg.user||!cfg.pass||!cfg.path||cfg.port<1||cfg.port>65535){
+    $("mqttError").textContent="Lengkapi host, port, path, username, dan password MQTT.";return;
+  }
+  try{
+    if($("cfgRemember").checked){localStorage.setItem(SETTINGS_KEY,JSON.stringify(cfg));sessionStorage.removeItem(SESSION_KEY);}
+    else{sessionStorage.setItem(SESSION_KEY,JSON.stringify(cfg));localStorage.removeItem(SETTINGS_KEY);}
+  }catch(e){log("Penyimpanan browser tidak tersedia");}
+  $("btnConnect").textContent="Menyambung...";
+  connectMqtt(cfg);
+  updateDiagnostics();
+});
 (function init(){
-  // Hapus kredensial tersimpan dari versi web lama bila ada.
-  try {localStorage.removeItem("inc_cred");} catch(e) {}
-  render();
-  pollDevice();
-  setInterval(pollDevice, 1300);
-  log("Dashboard lokal siap. Menunggu ESP32...");
+  const previous=readSavedSettings();
+  fillConfig(previous?previous.cfg:CFG_DEFAULT);
+  $("cfgRemember").checked=!!previous?.remember;
+  setMqtt(false,"MQTT: belum tersambung");
+  render(); updateDiagnostics();
+  if(previous){connectMqtt(previous.cfg);}
+  else{showView("dash");log("Dashboard siap. Buka Pengaturan untuk menyambungkan HiveMQ.");}
+  setInterval(()=>{
+    if(deviceLastSeen && Date.now()-deviceLastSeen>15000)S.deviceOnline=false;
+    render();updateDiagnostics();
+  },2000);
 })();
 </script>
 </body>
